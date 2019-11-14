@@ -1,0 +1,244 @@
+C51 COMPILER V9.59.0.0   MODBUS                                                            09/25/2019 14:50:55 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MODBUS
+OBJECT MODULE PLACED IN .\_Obj\Modbus.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\Libraries\Modbus.c LARGE OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Sour
+                    -ce;..\Libraries) DEFINE(MB_MT=0,Uart1=1,Uart2=0) DEBUG PRINT(..\_List\Modbus.lst) OBJECT(.\_Obj\Modbus.obj)
+
+line level    source
+
+   1          //--------------------------------------------------------------------------
+   2          //
+   3          //
+   4          //
+   5          //--------------------------------------------------------------------------
+   6          #include <string.h>
+   7          #include "Modbus.h"
+   8          #include "Uart.h"
+   9          #include "crc16.h"
+  10          //--------------------------------------------------------------------------
+  11          xdata unsigned short mDB_rMAP[MAP_MAX];
+  12          xdata unsigned short mDB_iMAP[MAP_MAX];
+  13          idata unsigned short Tx_Addr  = 0;
+  14          idata unsigned short Rx_Addr = 0;
+  15          //---
+  16          #if(MB_MT)
+              //--------------------------------------------------------------------------
+              int TX_M_MODBUS_RTU(unsigned char Ch, Type_ModbusRTU Da)
+              {
+                      int j = 0;
+                      WTYPE   WD;
+                      unsigned char Buf[20] = {0};
+                      //
+                      j = 0;
+                      Buf[j++] = Da.ID;
+                      Buf[j++] = Da.CMD;
+              //      WD.W = Da.Add-1;
+                      if(Ch == 2) Tx_Addr = Da.Add;
+                      WD.W = Da.Add;
+                      Buf[j++] = WD.B[0];
+                      Buf[j++] = WD.B[1];
+                      WD.W = Da.No;
+                      Buf[j++] = WD.B[0];
+                      Buf[j++] = WD.B[1];
+                      WD.W = CRC16(Buf, j);
+                      Buf[j++] = WD.B[0];
+                      Buf[j++] = WD.B[1];
+                      //---
+                      if(Ch == 2){
+              #if(Uart2)
+                              Tx2_Len = (unsigned char)j;
+                              memset(Tx2_Buf, 0, Tx2_Size);
+                              memcpy(Tx2_Buf, Buf, Tx2_Len);
+                              Tx2_CNT = 0;
+              //              DIR1 = 1;
+                              Tx2_FG = 1;
+              #endif
+                      } else {
+              #if(Uart1)
+                              Tx1_Len = (unsigned char)j;
+                              memset(Tx1_Buf, 0, Tx1_Size);
+                              memcpy(Tx1_Buf, Buf, Tx1_Len);
+                              Tx1_CNT = 0;
+              //              DIR0 = 1;
+C51 COMPILER V9.59.0.0   MODBUS                                                            09/25/2019 14:50:55 PAGE 2   
+
+                              Tx1_FG = 1;
+              #endif
+                      }
+                      return j;
+              }
+              //--------------------------------------------------------------------------
+              char RX_M_MODBUS_RTU(unsigned char Ch, unsigned char *Da, unsigned char sLen)
+              {
+                      WTYPE WB;
+              //      DWORD DW;
+                      idata unsigned int  i = 0, k = 0;
+                      idata unsigned char j = 0;
+                      idata unsigned char rID  = 0;
+                      idata unsigned char CMD  = 0;
+                      idata unsigned int  rADD = 0;
+                      idata unsigned char rLEN = 0;
+                      //---
+                      if(Ch == 2) rID = RTU_aID; else rID = RTU_aID;
+                      //---
+                      i = VerifyCRC(Da, sLen);
+                      if(i && (Da[0] == rID)){
+                              j = 1;
+                              CMD = Da[j++];
+                              //
+                              i = 0;
+                              switch(CMD){
+                                      //--- Bit
+                                      case 0x01:
+                                              
+                                              break;
+                                      case 0x02:
+                                              
+                                              break;
+                                      case 0x05:
+                                              
+                                              break;
+                                      //--- Word
+                                      case 0x03:
+                                              rLEN = Da[j++]/2;
+                                              for(i=0; i<rLEN; i++){
+                                                      WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; mDB_rMAP[i + Tx_Addr] = WB.W;
+                                              }
+                                              break;
+                                      case 0x04:
+                                              rLEN = Da[j++]/2;
+                                              for(i=0; i<rLEN; i++){
+                                                      WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; mDB_iMAP[i + Tx_Addr] = WB.W;
+                                              }
+                                              break;
+                                      case 0x06:
+                                              WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; rADD = WB.W;      // Address
+                                              WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; rLEN = WB.W;      // Len
+                                              mDB_rMAP[rADD] = rLEN;
+                                              break;
+                                      case 0x10:
+                                              WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; rADD = WB.W;      // Address
+                                              WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; rLEN = WB.W;      // Len
+                                              break;
+                                      default: i = 0; break;
+                              }
+                      } else j = -1;
+                      return (j);
+C51 COMPILER V9.59.0.0   MODBUS                                                            09/25/2019 14:50:55 PAGE 3   
+
+              }
+              #else
+ 119          //--------------------------------------------------------------------------
+ 120          char RX_S_MODBUS_RTU(unsigned char Ch, unsigned char *Da, unsigned char sLen)
+ 121          {
+ 122   1              WTYPE WB;
+ 123   1              idata unsigned int  i = 0, k = 0;
+ 124   1              idata unsigned char j = 0;
+ 125   1              idata unsigned char CMD  = 0;
+ 126   1              idata unsigned char rID  = 0;
+ 127   1              idata unsigned int  rADD = 0;
+ 128   1              idata unsigned char rLEN = 0;
+ 129   1              xdata unsigned char Buf[40] = {0};
+ 130   1              //---
+ 131   1              if(Ch == 2) rID = RTU_aID; else rID = RTU_aID;
+ 132   1              //---
+ 133   1              i = VerifyCRC(Da, sLen);
+ 134   1              if(i && (Da[0] == rID)){
+ 135   2                      memset(Buf, 0, 40);
+ 136   2                      j = 1;
+ 137   2                      Buf[0] = rID;
+ 138   2                      CMD = Da[j++];
+ 139   2                      Buf[1] = CMD;
+ 140   2                      WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; Rx_Addr = rADD = WB.W;    // Address
+ 141   2                      WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; rLEN = WB.W;      // Len
+ 142   2                      //
+ 143   2                      k = 2;
+ 144   2                      switch(CMD){
+ 145   3                              case 0x01:
+ 146   3                                      
+ 147   3                                      break;
+ 148   3                              case 0x02:
+ 149   3                                      
+ 150   3                                      break;
+ 151   3                              case 0x05:
+ 152   3                                      
+ 153   3                                      break;
+ 154   3                              case 0x03:
+ 155   3                                      Buf[k++] = rLEN * 2;
+ 156   3                                      for(i=0;i<rLEN;i++){
+ 157   4                                              WB.W = mDB_rMAP[i + rADD]; Buf[k++] = WB.B[0]; Buf[k++] = WB.B[1];
+ 158   4                                      }
+ 159   3                                      break;
+ 160   3                              case 0x04:
+ 161   3                                      Buf[k++] = rLEN * 2;
+ 162   3                                      for(i=0;i<rLEN;i++){
+ 163   4                                              WB.W = mDB_iMAP[i + rADD]; Buf[k++] = WB.B[0]; Buf[k++] = WB.B[1];
+ 164   4                                      }
+ 165   3                                      break;
+ 166   3                              case 0x06:
+ 167   3                                      mDB_rMAP[rADD] = rLEN;
+ 168   3                                      WB.W = rADD; Buf[k++] = WB.B[0]; Buf[k++] = WB.B[1];
+ 169   3                                      WB.W = rLEN; Buf[k++] = WB.B[0]; Buf[k++] = WB.B[1];
+ 170   3                                      break;
+ 171   3                              case 0x10:
+ 172   3                                      j++;
+ 173   3                                      for(i=0;i<rLEN;i++){
+ 174   4                                              WB.B[0] = Da[j++]; WB.B[1] = Da[j++]; mDB_rMAP[i + rADD] = WB.W;
+ 175   4                                      }
+ 176   3                                      WB.W = rADD; Buf[k++] = WB.B[0]; Buf[k++] = WB.B[1];
+ 177   3                                      WB.W = rLEN; Buf[k++] = WB.B[0]; Buf[k++] = WB.B[1];
+ 178   3                                      break;
+C51 COMPILER V9.59.0.0   MODBUS                                                            09/25/2019 14:50:55 PAGE 4   
+
+ 179   3                              default: Buf[1] = CMD + 0x80; break;
+ 180   3                      }
+ 181   2                      //---
+ 182   2                      WB.W = CRC16(Buf, k);
+ 183   2                      Buf[k++] = WB.B[0];
+ 184   2                      Buf[k++] = WB.B[1];
+ 185   2                      //---
+ 186   2                      if(Ch == 2){
+ 187   3      #if(Uart2)
+                                      Tx2_Len = (unsigned char)k;
+                                      memset(Tx2_Buf, 0, Tx2_Size);
+                                      memcpy(Tx2_Buf, Buf, Tx2_Len);
+                                      Tx2_CNT = 0;
+              //                      DIR1 = 1;
+                                      Tx2_FG = 1;
+              #endif
+ 195   3                      } else {
+ 196   3      #if(Uart1)
+ 197   3                              Tx1_Len = (unsigned char)k;
+ 198   3                              memset(Tx1_Buf, 0, Tx1_Size);
+ 199   3                              memcpy(Tx1_Buf, Buf, Tx1_Len);
+ 200   3                              Tx1_CNT = 0;
+ 201   3      //                      DIR0 = 1;
+ 202   3                              Tx1_FG = 1;
+ 203   3      #endif
+ 204   3                      }
+ 205   2              } else j = -1;
+ 206   1              return (j);
+ 207   1      }
+ 208          #endif
+ 209          //--------------------------------------------------------------------------
+ 210          // End of File
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1201    ----
+   CONSTANT SIZE    =     40    ----
+   XDATA SIZE       =    200      47
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =      4      10
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

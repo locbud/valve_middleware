@@ -1,0 +1,331 @@
+C51 COMPILER V9.59.0.0   BOILER_CONTROL                                                    09/25/2019 14:50:55 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE BOILER_CONTROL
+OBJECT MODULE PLACED IN .\_Obj\Boiler_Control.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\Source\Boiler_Control.c LARGE OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..
+                    -\Source;..\Libraries) DEFINE(MB_MT=0,Uart1=1,Uart2=0) DEBUG PRINT(..\_List\Boiler_Control.lst) OBJECT(.\_Obj\Boiler_Cont
+                    -rol.obj)
+
+line level    source
+
+   1          //--------------------------------------------------------------------------
+   2          //
+   3          //--------------------------------------------------------------------------
+   4          #include <string.h>
+   5          #include <stdio.h>
+   6          #include <math.h>
+   7          #include "REG_MG82FG5Bxx.h"
+   8          #include "Define.h"
+   9          #include "SetDRV.h"
+  10          #include "Time2.h"
+  11          #include "Uart.h"
+  12          #include "Modbus.h"
+  13          #include "ADC.h"
+  14          #include "IAP.h"
+  15          //--------------------------------------------------------------------------
+  16          //idata unsigned char  Not_Conn = 0;
+  17          //---
+  18          Type_Temp       mDB;
+  19          //--------------------------------------------------------------------------
+  20          code int NTC_Table[] = {
+  21          //        0    1    2    3    4    5    6    7    8    9
+  22          //        5,   5,   5,   5,   5,   5,   5,   5,   5,   5,       //
+  23                   -5,  -4,  -4,  -3,  -3,  -2,  -2,  -1,  -1,   0,       //   0  (마이너스온도)
+  24                    0,   1,   2,   2,   3,   3,   4,   4,   5,   6,       //  10
+  25                    7,   7,   8,   8,   9,   9,  10,  10,  11,  12,       //  20
+  26                   12,  13,  13,  14,  14,  15,  15,  16,  16,  17,       //  30
+  27                   17,  18,  18,  18,  19,  19,  20,  20,  21,  21,       //  40
+  28                   22,  22,  22,  23,  23,  24,  24,  24,  25,  25,       //  50
+  29                   26,  26,  27,  27,  28,  28,  28,  29,  29,  29,       //  60
+  30                   30,  30,  31,  31,  31,  32,  32,  33,  33,  33,       //  70
+  31                   34,  34,  35,  35,  35,  36,  36,  37,  37,  37,       //  80
+  32                   38,  38,  39,  39,  40,  40,  40,  41,  41,  42,       //  90
+  33                   42,  42,  43,  43,  43,  44,  44,  44,  45,  45,       // 100
+  34                   46,  46,  46,  47,  47,  48,  48,  48,  49,  49,       // 110
+  35                   50,  50,  50,  51,  51,  51,  52,  52,  53,  53,       // 120
+  36                   54,  54,  54,  55,  55,  56,  56,  57,  57,  58,       // 130
+  37                   58,  59,  59,  60,  60,  60,  61,  61,  62,  62,       // 140
+  38                   63,  63,  64,  64,  65,  65,  66,  67,  68,  68,       // 150
+  39                   69,  69,  70,  70,  71,  71,  72,  72,  73,  74,       // 160
+  40                   74,  75,  75,  76,  76,  77,  78,  79,  80,  80,       // 170
+  41                   81,  82,  83,  83,  84,  85,  86,  87,  88,  89,       // 180
+  42                   90,  91,  92,  93,  94,  95,  96,  97,  98,  99,       // 190
+  43                  100, 101, 102, 103, 104, 105, 106, 107, 108, 109,       // 200
+  44                  110, 111, 112, 113, 114, 115, 116, 117, 118, 119,       // 210
+  45                  120, 121, 122, 123, 124, 125, 126, 127, 128, 129,       // 220
+  46                  130, 131, 132, 133, 134, 135, 136, 137, 138, 139,       // 230
+  47                  140, 141, 142, 143, 144, 145, 146, 147, 148, 149        // 240
+  48          };
+  49          //--------------------------------------------------------------------------
+  50          void GetScaleZero(void)
+  51          {
+  52   1              DWORD DW;
+  53   1              //---
+C51 COMPILER V9.59.0.0   BOILER_CONTROL                                                    09/25/2019 14:50:55 PAGE 2   
+
+  54   1              DW.W[0] = mDB_rMAP[SA_TH]; DW.W[1] = mDB_rMAP[SA_TH+1]; ADC_SCALE[ADC_TH] = DW.F;               
+  55   1              DW.W[0] = mDB_rMAP[SA_TL]; DW.W[1] = mDB_rMAP[SA_TL+1]; ADC_SCALE[ADC_TL] = DW.F;
+  56   1              DW.W[0] = mDB_rMAP[SA_VO]; DW.W[1] = mDB_rMAP[SA_VO+1]; ADC_SCALE[ADC_VO] = DW.F;
+  57   1              DW.W[0] = mDB_rMAP[SA_CU]; DW.W[1] = mDB_rMAP[SA_CU+1]; ADC_SCALE[ADC_CU] = DW.F;
+  58   1              ADC_ZERO[ADC_TH] = mDB_rMAP[ZA_TH];
+  59   1              ADC_ZERO[ADC_TL] = mDB_rMAP[ZA_TL];
+  60   1              ADC_ZERO[ADC_VO] = mDB_rMAP[ZA_VO];
+  61   1              ADC_ZERO[ADC_CU] = mDB_rMAP[ZA_CU];
+  62   1      }
+  63          //--------------------------------------------------------------------------
+  64          void SetScaleZero(void)
+  65          {
+  66   1              DWORD DW;
+  67   1              //---
+  68   1              DW.F = ADC_SCALE[ADC_TH]; mDB_rMAP[SA_TH] = DW.W[0]; mDB_rMAP[SA_TH+1] = DW.W[1];
+  69   1              DW.F = ADC_SCALE[ADC_TL]; mDB_rMAP[SA_TL] = DW.W[0]; mDB_rMAP[SA_TL+1] = DW.W[1];
+  70   1              DW.F = ADC_SCALE[ADC_VO]; mDB_rMAP[SA_VO] = DW.W[0]; mDB_rMAP[SA_VO+1] = DW.W[1];
+  71   1              DW.F = ADC_SCALE[ADC_CU]; mDB_rMAP[SA_CU] = DW.W[0]; mDB_rMAP[SA_CU+1] = DW.W[1];
+  72   1              mDB_rMAP[ZA_TH] = ADC_ZERO[ADC_TH];
+  73   1              mDB_rMAP[ZA_TL] = ADC_ZERO[ADC_TL];
+  74   1              mDB_rMAP[ZA_VO] = ADC_ZERO[ADC_VO];
+  75   1              mDB_rMAP[ZA_CU] = ADC_ZERO[ADC_CU];
+  76   1      }
+  77          //--------------------------------------------------------------------------
+  78          // 1.0 = 00,0C,00,02,04,3F,80,00,00
+  79          // 1.2 = 00,0C,00,02,04,3F,99,99,9A
+  80          // 1.5 = 00,0C,00,02,04,3F,C0,00,00
+  81          // 1.7 = 00,0C,00,02,04,3F,D9,99,9A
+  82          void Config_Init(void)
+  83          {
+  84   1              ADC_SCALE[0] = 1.0;
+  85   1              ADC_SCALE[1] = 1.0;
+  86   1              ADC_SCALE[2] = 1.0;
+  87   1              ADC_SCALE[3] = 1.0;
+  88   1              ADC_ZERO[0] = 0;
+  89   1              ADC_ZERO[1] = 0;
+  90   1              ADC_ZERO[2] = 0;
+  91   1              ADC_ZERO[3] = 0;
+  92   1              SetScaleZero();
+  93   1      }
+  94          //--------------------------------------------------------------------------
+  95          int Config_Write(void)
+  96          {
+  97   1              WTYPE WB;
+  98   1              DWORD DW;
+  99   1              unsigned int i = 0, j = 0, k = 0;
+ 100   1              unsigned char sDa[50] = {0};
+ 101   1              unsigned char cDa[50] = {0};
+ 102   1              //---
+ 103   1              Erase_IAP(IAP_Addr);
+ 104   1              memset(sDa, 0, 50);
+ 105   1              memset(cDa, 0, 50);
+ 106   1              GetScaleZero();
+ 107   1              j = 2;
+ 108   1              DW.F = ADC_SCALE[ADC_TH]; sDa[j++] = DW.B[3]; sDa[j++] = DW.B[2]; sDa[j++] = DW.B[1]; sDa[j++] = DW.B[0];
+ 109   1              DW.F = ADC_SCALE[ADC_TL]; sDa[j++] = DW.B[3]; sDa[j++] = DW.B[2]; sDa[j++] = DW.B[1]; sDa[j++] = DW.B[0];
+ 110   1              DW.F = ADC_SCALE[ADC_VO]; sDa[j++] = DW.B[3]; sDa[j++] = DW.B[2]; sDa[j++] = DW.B[1]; sDa[j++] = DW.B[0];
+ 111   1              DW.F = ADC_SCALE[ADC_CU]; sDa[j++] = DW.B[3]; sDa[j++] = DW.B[2]; sDa[j++] = DW.B[1]; sDa[j++] = DW.B[0];
+ 112   1              WB.W = ADC_ZERO[ADC_TH];  sDa[j++] = WB.B[1]; sDa[j++] = WB.B[0];
+ 113   1              WB.W = ADC_ZERO[ADC_TL];  sDa[j++] = WB.B[1]; sDa[j++] = WB.B[0];
+ 114   1              WB.W = ADC_ZERO[ADC_VO];  sDa[j++] = WB.B[1]; sDa[j++] = WB.B[0];
+ 115   1              WB.W = ADC_ZERO[ADC_CU];  sDa[j++] = WB.B[1]; sDa[j++] = WB.B[0];
+C51 COMPILER V9.59.0.0   BOILER_CONTROL                                                    09/25/2019 14:50:55 PAGE 3   
+
+ 116   1              sDa[0] = 0x5A; sDa[1] = 0xA5;
+ 117   1              for(i = 0; i < j; i++) Write_IAP(IAP_Addr+i, sDa[i]);
+ 118   1              for(i = 0; i < j; i++) cDa[i] =  Read_IAP(IAP_Addr+i);
+ 119   1              //---
+ 120   1              k = 0;
+ 121   1              for(i = 0; i < j; i++) if(cDa[j] != sDa[j]) k++;
+ 122   1              //---
+ 123   1              return(k);
+ 124   1      }
+ 125          //--------------------------------------------------------------------------
+ 126          void Config_Read(void)
+ 127          {
+ 128   1              WTYPE WB;
+ 129   1              DWORD DW;
+ 130   1              unsigned int i = 0, j = 0, k = 0;
+ 131   1              unsigned char sDa[50] = {0};
+ 132   1              unsigned char cDa[50] = {0};
+ 133   1              //---
+ 134   1              for(i=0;i<50;i++) sDa[i] = Read_IAP(IAP_Addr+i);
+ 135   1              //
+ 136   1              if((sDa[0] == 0x5A)&&(sDa[1] == 0xA5)){
+ 137   2                      j = 2;
+ 138   2                      DW.B[3] = sDa[j++]; DW.B[2] = sDa[j++]; DW.B[1] = sDa[j++]; DW.B[0] = sDa[j++]; ADC_SCALE[ADC_TH] = DW.F
+             -;
+ 139   2                      DW.B[3] = sDa[j++]; DW.B[2] = sDa[j++]; DW.B[1] = sDa[j++]; DW.B[0] = sDa[j++]; ADC_SCALE[ADC_TL] = DW.F
+             -;
+ 140   2                      DW.B[3] = sDa[j++]; DW.B[2] = sDa[j++]; DW.B[1] = sDa[j++]; DW.B[0] = sDa[j++]; ADC_SCALE[ADC_VO] = DW.F
+             -;
+ 141   2                      DW.B[3] = sDa[j++]; DW.B[2] = sDa[j++]; DW.B[1] = sDa[j++]; DW.B[0] = sDa[j++]; ADC_SCALE[ADC_CU] = DW.F
+             -;
+ 142   2                      WB.B[1] = sDa[j++]; WB.B[0] = sDa[j++]; ADC_ZERO[ADC_TH] = WB.W;
+ 143   2                      WB.B[1] = sDa[j++]; WB.B[0] = sDa[j++]; ADC_ZERO[ADC_TL] = WB.W;
+ 144   2                      WB.B[1] = sDa[j++]; WB.B[0] = sDa[j++]; ADC_ZERO[ADC_VO] = WB.W;
+ 145   2                      WB.B[1] = sDa[j++]; WB.B[0] = sDa[j++]; ADC_ZERO[ADC_CU] = WB.W;
+ 146   2                      //---
+ 147   2                      SetScaleZero();
+ 148   2              } else {
+ 149   2                      Config_Init();
+ 150   2                      Config_Write();
+ 151   2              }
+ 152   1      }
+ 153          //--------------------------------------------------------------------------
+ 154          void ADC_Updata(void)
+ 155          {
+ 156   1              int i = 0;
+ 157   1              DWORD DW;
+ 158   1              //---
+ 159   1              i = (1024 - ADC_BUFF[ADC_TH]) / 4; if(i >=249) i = 249; mDB.TH = (float)NTC_Table[i];
+ 160   1              i = (1024 - ADC_BUFF[ADC_TL]) / 4; if(i >=249) i = 249; mDB.TL = (float)NTC_Table[i];
+ 161   1      //      mDB.TH = (ADC_BUFF[ADC_TH] * ADC_SCALE[ADC_TH]) + ADC_ZERO[ADC_TH];
+ 162   1      //      mDB.TL = (ADC_BUFF[ADC_TL] * ADC_SCALE[ADC_TL]) + ADC_ZERO[ADC_TL];
+ 163   1              mDB.VO = (ADC_BUFF[ADC_VO] * ADC_SCALE[ADC_VO]) + ADC_ZERO[ADC_VO];
+ 164   1              mDB.CU = (ADC_BUFF[ADC_CU] * ADC_SCALE[ADC_CU]) + ADC_ZERO[ADC_CU];
+ 165   1              //---
+ 166   1              DW.F = mDB.TH; mDB_iMAP[MA_TH] = DW.W[0]; mDB_iMAP[MA_TH+1] = DW.W[1];
+ 167   1              DW.F = mDB.TL; mDB_iMAP[MA_TL] = DW.W[0]; mDB_iMAP[MA_TL+1] = DW.W[1];
+ 168   1              DW.F = mDB.VO; mDB_iMAP[MA_VO] = DW.W[0]; mDB_iMAP[MA_VO+1] = DW.W[1];
+ 169   1              DW.F = mDB.CU; mDB_iMAP[MA_CU] = DW.W[0]; mDB_iMAP[MA_CU+1] = DW.W[1];
+ 170   1      }
+ 171          //--------------------------------------------------------------------------
+ 172          void main( void )
+ 173          {
+C51 COMPILER V9.59.0.0   BOILER_CONTROL                                                    09/25/2019 14:50:55 PAGE 4   
+
+ 174   1              DWORD DW;
+ 175   1              int i = 0;
+ 176   1              idata Type_ModbusRTU    DaA;
+ 177   1              //---
+ 178   1              Ser_OSC();
+ 179   1              //---
+ 180   1          Initial_Timer2();
+ 181   1              Initial_UART0(BR_9600);
+ 182   1              IO_Map_Init();
+ 183   1              Initial_ADC(0);
+ 184   1          EA=1;
+ 185   1              LED1_FG = 0;
+ 186   1              LED2_FG = 0;
+ 187   1              LED_OnOff(1, 0);
+ 188   1              LED_OnOff(2, 0);
+ 189   1          //---
+ 190   1              RF_Set(0x98);
+ 191   1              Config_Read();
+ 192   1          Tx1_FG = 0;
+ 193   1              Rx1_FG = 0;
+ 194   1              Rx1_CP = 0;
+ 195   1          //---
+ 196   1      #if(MB_MT)
+                      mDB.TH = 0.0;
+                      mDB.TL = 0.0;
+                      mDB.VO = 0.0;
+                      mDB.CU = 0.0;
+                      mDB.Do = 0;
+              #else
+ 203   1              mDB.TH = 70.0;
+ 204   1              mDB.TL = 30.0;
+ 205   1              mDB.VO = 1.5;
+ 206   1              mDB.CU = 0.5;
+ 207   1              mDB.Do = 0x003F;
+ 208   1              mDB.ST = 0x0;
+ 209   1      #endif
+ 210   1              //---
+ 211   1              DaA.ID  = RTU_aID;
+ 212   1              DaA.CMD = RTU_CMD;
+ 213   1              DaA.Add = RTU_Addr;
+ 214   1              DaA.No  = RTU_Len;
+ 215   1              //---
+ 216   1              WDT_INIT();
+ 217   1              //---
+ 218   1          while(1){
+ 219   2                      //---
+ 220   2              if(Rx1_CP){
+ 221   3                      Rx1_CP = 0;
+ 222   3      #if(MB_MT)
+                                      RX_M_MODBUS_RTU(1, Rx1_tBuf, Rx1_tCNT);
+                                      //---
+                                      mDB.ST  = mDB_iMAP[MA_STATE];
+                                      mDB.Do  = mDB_iMAP[MA_SET] = mDB_rMAP[MA_SET];
+                                      DW.W[0] = mDB_iMAP[MA_TH]; DW.W[1] = mDB_iMAP[MA_TH+1]; mDB.TH = DW.F;
+                                      DW.W[0] = mDB_iMAP[MA_TL]; DW.W[1] = mDB_iMAP[MA_TL+1]; mDB.TL = DW.F;
+                                      DW.W[0] = mDB_iMAP[MA_VO]; DW.W[1] = mDB_iMAP[MA_VO+1]; mDB.VO = DW.F;
+                                      DW.W[0] = mDB_iMAP[MA_CU]; DW.W[1] = mDB_iMAP[MA_CU+1]; mDB.CU = DW.F;
+              #else
+ 232   3                              RX_S_MODBUS_RTU(1, Rx1_Buf, Rx1_CNT);
+ 233   3                              if(Rx_Addr >= SA_TH) Config_Write();
+ 234   3      #endif
+ 235   3      //                      Conn1_FG = 1;
+C51 COMPILER V9.59.0.0   BOILER_CONTROL                                                    09/25/2019 14:50:55 PAGE 5   
+
+ 236   3                      }
+ 237   2                      //---
+ 238   2                      if(FG_T10mS){
+ 239   3                              FG_T10mS = 0;
+ 240   3                              switch(ADC_SEL){
+ 241   4                                      case ADC_TH: Select_ADC(ADC_TH); ADC_BUFF[ADC_TH] = Read_ADC(); ADC_SEL = ADC_TL; break;
+ 242   4                                      case ADC_TL: Select_ADC(ADC_TL); ADC_BUFF[ADC_TL] = Read_ADC(); ADC_SEL = ADC_VO; break;
+ 243   4                                      case ADC_VO: Select_ADC(ADC_VO); ADC_BUFF[ADC_VO] = Read_ADC(); ADC_SEL = ADC_CU; break;
+ 244   4                                      case ADC_CU: Select_ADC(ADC_CU); ADC_BUFF[ADC_CU] = Read_ADC(); ADC_SEL = ADC_UD; break;
+ 245   4                                      case ADC_UD: ADC_Updata(); ADC_SEL = ADC_TH;
+ 246   4                                              mDB.Do = mDB_rMAP[MA_SET];
+ 247   4                                              IO_InOut((unsigned char)mDB.Do);
+ 248   4                                              mDB_iMAP[MA_STATE] = mDB.Do;
+ 249   4                                              break;
+ 250   4      //                              default: break;
+ 251   4                              }
+ 252   3                              //---
+ 253   3                      }
+ 254   2                      //---
+ 255   2                      if(FG_T100mS){
+ 256   3                              FG_T100mS = 0;
+ 257   3                              //---
+ 258   3                              LED1_FG++;
+ 259   3                              if(LED1_FG >= 10){
+ 260   4                                      LED1_FG = 0;
+ 261   4                                      LED_OnOff(1, 0);
+ 262   4                              } else if(LED1_FG == 5){
+ 263   4                                      LED_OnOff(1, 1);
+ 264   4                              }
+ 265   3                      }
+ 266   2                      //---
+ 267   2                      if(FG_T1S){
+ 268   3                              FG_T1S = 0;
+ 269   3                              //---
+ 270   3      #if(MB_MT)
+                                      TX_M_MODBUS_RTU(1, DaA);
+              #endif
+ 273   3                              //---
+ 274   3      /*
+ 275   3                              Not_Conn++;
+ 276   3                              //---
+ 277   3                              if(Not_Conn >= 10){
+ 278   3                                      Not_Conn = 0;
+ 279   3                              }
+ 280   3      */
+ 281   3                      }
+ 282   2                      //---
+ 283   2                      WDTCR |= CLW;
+ 284   2          }
+ 285   1      }
+*** WARNING C280 IN LINE 174 OF ..\Source\Boiler_Control.c: 'DW': unreferenced local variable
+ 286          //--------------------------------------------------------------------------
+ 287          // End of File
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3367    ----
+   CONSTANT SIZE    =    700    ----
+   XDATA SIZE       =     20     242
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----       6
+C51 COMPILER V9.59.0.0   BOILER_CONTROL                                                    09/25/2019 14:50:55 PAGE 6   
+
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,13 @@
+".\_Obj\STARTUP.obj",
+".\_Obj\Boiler_Control.obj",
+".\_Obj\Time2.obj",
+".\_Obj\UART.obj",
+".\_Obj\Modbus.obj",
+"..\Libraries\CRC16.LIB",
+".\_Obj\SetDRV.obj",
+".\_Obj\ADC.obj",
+".\_Obj\IAP.obj" 
+TO ".\_Obj\Boiler_Client" 
+
+PRINT("..\_List\Boiler_Client.map") CLASSES (XDATA (X:0x0-X:0x2FF), HDATA (X:0x0-X:0x2FF), CODE (C:0x0-C:0x3FFF), CONST (C:0x0-C:0x3FFF), 
+ECODE (C:0x0-C:0x3FFF), HCONST (C:0x0-C:0x3FFF)) 

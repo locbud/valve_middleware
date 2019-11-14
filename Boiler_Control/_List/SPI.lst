@@ -1,0 +1,224 @@
+C51 COMPILER V9.59.0.0   SPI                                                               09/04/2019 10:16:13 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE SPI
+OBJECT MODULE PLACED IN .\_Obj\SPI.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\Libraries\SPI.c LARGE OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Source;
+                    -..\Libraries) DEBUG PRINT(..\_List\SPI.lst) TABS(2) OBJECT(.\_Obj\SPI.obj)
+
+line level    source
+
+   1          /*--------------------------------------------------------------------------
+   2          * File Name          : isr.c
+   3          * Author             : SunKyung
+   4          * Version            : V1.0
+   5          * HomePage           : http://sunkyung.iptime.org
+   6          * Date               : 09/03/2013
+   7          * Description        : Sikhoon J.
+   8          --------------------------------------------------------------------------*/
+   9          // Master/Slave
+  10          #include "REG_MG82FG5Bxx.h"
+  11          #include <string.h>
+  12          #include <stdio.h>
+  13          #include "SPI.h"
+  14          #include "SetDRV.h"
+  15          #include "Time2.h"
+  16          //--------------------------------------------------------------------------
+  17          #define Mode_Master   0
+  18          //--------------------------------------------------------------------------
+  19          //void Dir_SPI(char i);
+  20          //---
+  21          //unsigned char SPI_ID = 0;
+  22          bit SPI_Rx_FG = 0;
+  23          //bit SPI_Rx_CP = 0;
+  24          bit SPI_Tx_FG = 0;
+  25          bit SPI_Tx_CP = 0;  // transmit_completed
+  26          bit SPI_Tx_m1CP = 0;  // transmit_completed
+  27          bit SPI_Tx_m2CP = 0;  // transmit_completed
+  28          idata char SPI_C_Code = 0;
+  29          idata char SPI_RxCNT = 0;
+  30          idata char SPI_TxCNT = 0;
+  31          idata unsigned char CH_Code;
+  32          idata unsigned char CMD_Code;
+  33          idata unsigned char SPI_tBUF_SIZE = 0;
+  34          //idata unsigned char SPI_tBUF_NO = 0;
+  35          unsigned char SPI_rBuff[SPI_rBUF_SIZE];
+  36          unsigned char SPI_taBuff[SPI_taBUF_NO][SPI_taBUF_SIZE];
+  37          unsigned char SPI_tbBuff[SPI_tbBUF_NO][SPI_tbBUF_SIZE];
+  38          //--------------------------------------------------------------------------
+  39          #if(uGAS)
+*** WARNING C322 IN LINE 39 OF ..\Libraries\SPI.c: unknown identifier
+                extern idata bit  C2_cgRun_FG;
+                extern idata bit  C2_Run_FG;
+              #endif
+  43          #if(uWater)
+*** WARNING C322 IN LINE 43 OF ..\Libraries\SPI.c: unknown identifier
+                extern idata bit  C1_Run_FG;
+                extern idata bit  C1_Pump_FG;
+                extern idata bit  C1_Moni_FG;
+                extern idata bit  C2_Run_FG;
+                extern idata bit  C2_Pump_FG;
+                extern idata bit  C2_Moni_FG;
+              #endif
+  51          //--------------------------------------------------------------------------
+  52          void it_SPI(void) interrupt 8 using 1 // interrupt address is 0x004B
+C51 COMPILER V9.59.0.0   SPI                                                               09/04/2019 10:16:13 PAGE 2   
+
+  53          {
+  54   1          idata unsigned char i = 0, j = 0;
+  55   1        idata unsigned char c = 0;
+  56   1        //---
+  57   1      //  CPU = ~CPU;
+  58   1        if(SPSTAT & SPIF){
+  59   2          SPI_Tx_CP = 1;
+  60   2          c = SPDAT;
+  61   2      //    SPSTAT |= SPIF;
+  62   2          //---
+  63   2          if(c == 0x28){
+  64   3            memset(SPI_rBuff, 0, SPI_rBUF_SIZE);
+  65   3            SPI_Tx_FG = 0;
+  66   3            SPI_Rx_FG = 1;
+  67   3            SPI_RxCNT = 0;
+  68   3            SPI_rBuff[SPI_RxCNT++] = c;
+  69   3          } else if((c == 0x29) && SPI_Rx_FG){
+  70   3            SPI_rBuff[SPI_RxCNT++] = c;
+  71   3            SPI_Rx_FG = 0;
+  72   3      #if(uGAS)
+*** WARNING C322 IN LINE 72 OF ..\Libraries\SPI.c: unknown identifier
+                    if(SPI_rBuff[2] == '1'){
+                      if(SPI_rBuff[1] & 0x20){
+                        SPI_rBuff[1] &= 0xDF;
+                        if(SPI_rBuff[1] == SPI_UART2_ID){
+                          if(C2_Run_FG == 0) C2_cgRun_FG = 1;
+                          C2_Run_FG = 1;  // Run
+                        }
+                        CPU = 1;
+                      } else {
+                        if(SPI_rBuff[1] == SPI_UART2_ID){
+                          if(C2_Run_FG == 1) C2_cgRun_FG = 1;
+                          C2_Run_FG = 0;  // Stop
+                        }
+                        CPU = 0;
+                      }
+                    }
+              #endif
+  90   3      //---
+  91   3      #if(uWater)
+*** WARNING C322 IN LINE 91 OF ..\Libraries\SPI.c: unknown identifier
+                    if(SPI_rBuff[2] == '1'){
+                      if(SPI_rBuff[1] & 0x20){
+                        SPI_rBuff[1] &= 0xDF;
+                        if(SPI_rBuff[1] == SPI_UART1_ID){
+              //            if(C1_Pump_FG == 0) C1_Run_FG = 1;
+                          if(C1_Moni_FG == 0) C1_Run_FG = 1;
+                          C1_Pump_FG = 1;   // Run
+                        } else if(SPI_rBuff[1] == SPI_UART2_ID){
+              //            if(C2_Pump_FG == 0) C2_Run_FG = 1;
+                          if(C2_Moni_FG == 0) C2_Run_FG = 1;
+                          C2_Pump_FG = 1;   // Run
+                        }
+                        CPU = 1;
+                      } else {
+                        if(SPI_rBuff[1] == SPI_UART1_ID){
+              //            if(C1_Pump_FG) C1_Run_FG = 1;
+                          if(C1_Moni_FG) C1_Run_FG = 1;
+                          C1_Pump_FG = 0;   // Stop
+                        } else if(SPI_rBuff[1] == SPI_UART2_ID){
+              //            if(C2_Pump_FG) C2_Run_FG = 1;
+                          if(C2_Moni_FG) C2_Run_FG = 1;
+C51 COMPILER V9.59.0.0   SPI                                                               09/04/2019 10:16:13 PAGE 3   
+
+                          C2_Pump_FG = 0;   // Stop
+                        }
+                        CPU = 0;
+                      }
+                    }
+              #endif
+ 119   3            if((SPI_rBuff[1] == SPI_UART1_ID) || (SPI_rBuff[1] == SPI_UART2_ID)){
+ 120   4              SPI_tCNT = 0;
+ 121   4                CH_Code  = SPI_rBuff[1];
+ 122   4                CMD_Code = SPI_rBuff[2] - 0x31;
+ 123   4      //          P1M0 |= 0x40;
+ 124   4                if(CH_Code == SPI_UART1_ID){
+ 125   5                  SPI_tBUF_SIZE = SPI_taBUF_SIZE;
+ 126   5      //            SPI_tBUF_NO = SPI_taBUF_NO - 1;
+ 127   5                  SPI_Tx_m1CP = 0;
+ 128   5                } else {
+ 129   5                  SPI_tBUF_SIZE = SPI_tbBUF_SIZE;
+ 130   5      //            SPI_tBUF_NO = SPI_tbBUF_NO - 1;
+ 131   5                  SPI_Tx_m2CP = 0;
+ 132   5                }
+ 133   4                SPI_Tx_CP = 0;
+ 134   4                SPI_TxCNT = 0;
+ 135   4                SPI_Tx_FG = 1;
+ 136   4                goto Loop_SPI1;
+ 137   4          //    }
+ 138   4            } else {
+ 139   4              SPI_Rx_FG = 0;
+ 140   4              SPI_Tx_FG = 0;
+ 141   4            }
+ 142   3          } else {
+ 143   3            if(SPI_Tx_FG){
+ 144   4      Loop_SPI1:    if(CH_Code == SPI_UART1_ID)
+ 145   4                c = SPI_taBuff[CMD_Code][SPI_TxCNT];
+ 146   4              else 
+ 147   4                c = SPI_tbBuff[CMD_Code][SPI_TxCNT];
+ 148   4              SPDAT = c;
+ 149   4              SPI_TxCNT++;
+ 150   4              if(CMD_Code == 1){
+ 151   5                i++;
+ 152   5              }
+ 153   4              //---
+ 154   4              if((c == 0x0A)||(SPI_TxCNT >= SPI_tBUF_SIZE)) {
+ 155   5        //        P1M0 &= 0xBF;
+ 156   5        //        SPSTAT |= SPIF;
+ 157   5      //          SPI_tCNT = 0;
+ 158   5                SPI_Tx_FG = 0;
+ 159   5                if(c == 0x0A){
+ 160   6                  SPI_Tx_CP = 1;
+ 161   6                  if((CH_Code == SPI_UART1_ID)&&(CMD_Code == (SPI_taBUF_NO - 1))){
+ 162   7                    SPI_Tx_m1CP = 1;
+ 163   7                  } else if((CH_Code == SPI_UART2_ID)&&(CMD_Code == (SPI_tbBUF_NO - 1))){
+ 164   7                    SPI_Tx_m2CP = 1;
+ 165   7                  }
+ 166   6                }
+ 167   5              }
+ 168   4            } else if(SPI_Rx_FG){
+ 169   4              if(SPI_RxCNT >= SPI_rBUF_SIZE) SPI_Rx_FG = 0;
+ 170   4              else SPI_rBuff[SPI_RxCNT++] = c;
+ 171   4            } // else P1M0 &= 0xBF;
+ 172   3          }
+ 173   2        } // else 
+ 174   1        SPSTAT |= SPIF;
+C51 COMPILER V9.59.0.0   SPI                                                               09/04/2019 10:16:13 PAGE 4   
+
+ 175   1      //  SPI_tCNT = 0;
+ 176   1      }
+ 177          //--------------------------------------------------------------------------
+ 178          void init_SPI(void)
+ 179          {
+ 180   1      #if (Mode_Master)
+              //  SPCON = (SPEN | MSTR);  //  | SPR1 | SPR0
+              //  P1M0 |= 0xA0;
+              //  P2M0 |= 0x0F;
+              //  SPI_SELECTOR(0x0F);
+              #else
+ 186   1        AUXR1 &= ~0x20;
+ 187   1        SPCON = (SPEN | CPOL);
+ 188   1      //  SPCON = SPEN;
+ 189   1      //  SPSTAT |= 0x01;
+ 190   1      //  P1M0 &= 0x0F;
+ 191   1        EIE1 |=  ESPI;
+ 192   1        //---
+ 193   1      //  SPI_Rx_FG = 0;
+ 194   1      //  SPI_Tx_FG = 0;
+ 195   1      //  SPI_Tx_CP = 0;
+ 196   1      #endif
+ 197   1        P1M0 &= 0xBF;
+ 198   1        CPU = 1;
+*** ERROR C202 IN LINE 198 OF ..\Libraries\SPI.c: 'CPU': undefined identifier
+ 199   1      }
+ 200          //--------------------------------------------------------------------------
+ 201          // End of File
+
+C51 COMPILATION COMPLETE.  4 WARNING(S),  1 ERROR(S)

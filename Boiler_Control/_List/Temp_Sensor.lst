@@ -1,0 +1,219 @@
+C51 COMPILER V9.59.0.0   TEMP_SENSOR                                                       09/25/2019 06:10:10 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE TEMP_SENSOR
+OBJECT MODULE PLACED IN .\_Obj\Temp_Sensor.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\Source\Temp_Sensor.c LARGE OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..\So
+                    -urce;..\Libraries) DEFINE(MB_MT=0,Uart1=1,Uart2=0) DEBUG PRINT(..\_List\Temp_Sensor.lst) OBJECT(.\_Obj\Temp_Sensor.obj)
+
+line level    source
+
+   1          //--------------------------------------------------------------------------
+   2          //
+   3          //--------------------------------------------------------------------------
+   4          #include <string.h>
+   5          #include <stdio.h>
+   6          #include <math.h>
+   7          #include "REG_MG82FG5Bxx.h"
+   8          #include "Define.h"
+   9          #include "SetDRV.h"
+  10          #include "Time2.h"
+  11          #include "Uart.h"
+  12          #include "Modbus.h"
+  13          #include "ADC.h"
+  14          //--------------------------------------------------------------------------
+  15          idata unsigned char  Not_Conn = 0;
+  16          //---
+  17          Type_Temp       mDB;
+  18          //--------------------------------------------------------------------------
+  19          code int NTC_Table[] = {
+  20          //        0    1    2    3    4    5    6    7    8    9
+  21          //        5,   5,   5,   5,   5,   5,   5,   5,   5,   5,       //
+  22                   -5,  -4,  -4,  -3,  -3,  -2,  -2,  -1,  -1,   0,       //   0  (마이너스온도)
+  23                    0,   1,   2,   2,   3,   3,   4,   4,   5,   6,       //  10
+  24                    7,   7,   8,   8,   9,   9,  10,  10,  11,  12,       //  20
+  25                   12,  13,  13,  14,  14,  15,  15,  16,  16,  17,       //  30
+  26                   17,  18,  18,  18,  19,  19,  20,  20,  21,  21,       //  40
+  27                   22,  22,  22,  23,  23,  24,  24,  24,  25,  25,       //  50
+  28                   26,  26,  27,  27,  28,  28,  28,  29,  29,  29,       //  60
+  29                   30,  30,  31,  31,  31,  32,  32,  33,  33,  33,       //  70
+  30                   34,  34,  35,  35,  35,  36,  36,  37,  37,  37,       //  80
+  31                   38,  38,  39,  39,  40,  40,  40,  41,  41,  42,       //  90
+  32                   42,  42,  43,  43,  43,  44,  44,  44,  45,  45,       // 100
+  33                   46,  46,  46,  47,  47,  48,  48,  48,  49,  49,       // 110
+  34                   50,  50,  50,  51,  51,  51,  52,  52,  53,  53,       // 120
+  35                   54,  54,  54,  55,  55,  56,  56,  57,  57,  58,       // 130
+  36                   58,  59,  59,  60,  60,  60,  61,  61,  62,  62,       // 140
+  37                   63,  63,  64,  64,  65,  65,  66,  67,  68,  68,       // 150
+  38                   69,  69,  70,  70,  71,  71,  72,  72,  73,  74,       // 160
+  39                   74,  75,  75,  76,  76,  77,  78,  79,  80,  80,       // 170
+  40                   81,  82,  83,  83,  84,  85,  86,  87,  88,  89,       // 180
+  41                   90,  91,  92,  93,  94,  95,  96,  97,  98,  99,       // 190
+  42                  100, 101, 102, 103, 104, 105, 106, 107, 108, 109,       // 200
+  43                  110, 111, 112, 113, 114, 115, 116, 117, 118, 119,       // 210
+  44                  120, 121, 122, 123, 124, 125, 126, 127, 128, 129,       // 220
+  45                  130, 131, 132, 133, 134, 135, 136, 137, 138, 139,       // 230
+  46                  140, 141, 142, 143, 144, 145, 146, 147, 148, 149        // 240
+  47          };
+  48          //--------------------------------------------------------------------------
+  49          void ADC_Updata(void)
+  50          {
+  51   1              int i = 0;
+  52   1              DWORD DW;
+  53   1              //---
+  54   1              i = (1024 - ADC_BUFF[ADC_TH]) / 4; if(i >=249) i = 249; mDB.TH = (float)NTC_Table[i];
+C51 COMPILER V9.59.0.0   TEMP_SENSOR                                                       09/25/2019 06:10:10 PAGE 2   
+
+  55   1              i = (1024 - ADC_BUFF[ADC_TL]) / 4; if(i >=249) i = 249; mDB.TL = (float)NTC_Table[i];
+  56   1      //      mDB.TH = (ADC_BUFF[ADC_TH] * ADC_SCALE[ADC_TH]) + ADC_ZERO[ADC_TH];
+  57   1      //      mDB.TL = (ADC_BUFF[ADC_TL] * ADC_SCALE[ADC_TL]) + ADC_ZERO[ADC_TL];
+  58   1              mDB.VO = (ADC_BUFF[ADC_VO] * ADC_SCALE[ADC_VO]) + ADC_ZERO[ADC_VO];
+  59   1              mDB.CU = (ADC_BUFF[ADC_CU] * ADC_SCALE[ADC_CU]) + ADC_ZERO[ADC_CU];
+  60   1              //---
+  61   1              DW.F = mDB.TH; mDB_iMAP[MA_TH] = DW.W[0]; mDB_iMAP[MA_TH+1] = DW.W[1];
+  62   1              DW.F = mDB.TL; mDB_iMAP[MA_TL] = DW.W[0]; mDB_iMAP[MA_TL+1] = DW.W[1];
+  63   1              DW.F = mDB.VO; mDB_iMAP[MA_VO] = DW.W[0]; mDB_iMAP[MA_VO+1] = DW.W[1];
+  64   1              DW.F = mDB.CU; mDB_iMAP[MA_CU] = DW.W[0]; mDB_iMAP[MA_CU+1] = DW.W[1];
+  65   1      }
+  66          //--------------------------------------------------------------------------
+  67          void main( void )
+  68          {
+  69   1              DWORD DW;
+  70   1              int i = 0;
+  71   1              idata Type_ModbusRTU    DaA;
+  72   1              //---
+  73   1              Ser_OSC();
+  74   1              //---
+  75   1          Initial_Timer2();
+  76   1              Initial_UART0(BR_9600);
+  77   1              IO_Map_Init();
+  78   1              Initial_ADC(0);
+  79   1          EA=1;
+  80   1              LED1_FG = 0;
+  81   1              LED2_FG = 0;
+  82   1              LED_OnOff(1, 0);
+  83   1              LED_OnOff(2, 0);
+  84   1          //---
+  85   1              RF_Set(0x98);
+  86   1              for(i = 0; i < 4; i++){
+  87   2                      ADC_SCALE[i] = 1.0;
+  88   2                      ADC_ZERO[i] = 0;
+  89   2              }
+  90   1          Tx1_FG = 0;
+  91   1              Rx1_FG = 0;
+  92   1              Rx1_CP = 0;
+  93   1          //---
+  94   1      #if(MB_MT)
+                      mDB.TH = 0.0;
+                      mDB.TL = 0.0;
+                      mDB.VO = 0.0;
+                      mDB.CU = 0.0;
+                      mDB.Do = 0;
+              #else
+ 101   1              mDB.TH = 70.0;
+ 102   1              mDB.TL = 30.0;
+ 103   1              mDB.VO = 1.5;
+ 104   1              mDB.CU = 0.5;
+ 105   1              mDB.Do = 0x003F;
+ 106   1              mDB.ST = 0x0;
+ 107   1      #endif
+ 108   1              //---
+ 109   1              DaA.ID  = RTU_aID;
+ 110   1              DaA.CMD = RTU_CMD;
+ 111   1              DaA.Add = RTU_Addr;
+ 112   1              DaA.No  = RTU_Len;
+ 113   1              //---
+ 114   1              WDT_INIT();
+ 115   1              //---
+ 116   1          while(1){
+C51 COMPILER V9.59.0.0   TEMP_SENSOR                                                       09/25/2019 06:10:10 PAGE 3   
+
+ 117   2                      //---
+ 118   2              if(Rx1_CP){
+ 119   3                      Rx1_CP = 0;
+ 120   3      #if(MB_MT)
+                                      RX_M_MODBUS_RTU(1, Rx1_tBuf, Rx1_tCNT);
+                                      //---
+                                      mDB.ST  = mDB_iMAP[MA_STATE];
+                                      mDB.Do  = mDB_iMAP[MA_SET] = mDB_rMAP[MA_SET];
+                                      DW.W[0] = mDB_iMAP[MA_TH]; DW.W[1] = mDB_iMAP[MA_TH+1]; mDB.TH = DW.F;
+                                      DW.W[0] = mDB_iMAP[MA_TL]; DW.W[1] = mDB_iMAP[MA_TL+1]; mDB.TL = DW.F;
+                                      DW.W[0] = mDB_iMAP[MA_VO]; DW.W[1] = mDB_iMAP[MA_VO+1]; mDB.VO = DW.F;
+                                      DW.W[0] = mDB_iMAP[MA_CU]; DW.W[1] = mDB_iMAP[MA_CU+1]; mDB.CU = DW.F;
+              #else
+ 130   3                              RX_S_MODBUS_RTU(1, Rx1_Buf, Rx1_CNT);
+ 131   3      #endif
+ 132   3      //                      Conn1_FG = 1;
+ 133   3                      }
+ 134   2                      //---
+ 135   2                      if(FG_T10mS){
+ 136   3                              FG_T10mS = 0;
+ 137   3                              switch(ADC_SEL){
+ 138   4                                      case ADC_TH: Select_ADC(ADC_TH); ADC_BUFF[ADC_TH] = Read_ADC(); ADC_SEL = ADC_TL; break;
+ 139   4                                      case ADC_TL: Select_ADC(ADC_TL); ADC_BUFF[ADC_TL] = Read_ADC(); ADC_SEL = ADC_VO; break;
+ 140   4                                      case ADC_VO: Select_ADC(ADC_VO); ADC_BUFF[ADC_VO] = Read_ADC(); ADC_SEL = ADC_CU; break;
+ 141   4                                      case ADC_CU: Select_ADC(ADC_CU); ADC_BUFF[ADC_CU] = Read_ADC(); ADC_SEL = ADC_TH; break;
+ 142   4      //                              default: break;
+ 143   4                              }
+ 144   3                              //---
+ 145   3                      }
+ 146   2                      //---
+ 147   2                      if(FG_T100mS){
+ 148   3                              FG_T100mS = 0;
+ 149   3                              //---
+ 150   3                              ADC_Updata();
+ 151   3      //                      Start_ADC();
+ 152   3                              //---
+ 153   3                              mDB.Do = mDB_rMAP[MA_SET];
+ 154   3                              IO_InOut((unsigned char)mDB.Do);
+ 155   3                              mDB_iMAP[MA_STATE] = mDB.Do;
+ 156   3                              //---
+ 157   3                              LED1_FG++;
+ 158   3                              if(LED1_FG >= 10){
+ 159   4                                      LED1_FG = 0;
+ 160   4                                      LED_OnOff(1, 0);
+ 161   4                              } else if(LED1_FG == 5){
+ 162   4                                      LED_OnOff(1, 1);
+ 163   4                              }
+ 164   3                      }
+ 165   2                      //---
+ 166   2                      if(FG_T1S){
+ 167   3                              FG_T1S = 0;
+ 168   3                              //---
+ 169   3      #if(MB_MT)
+                                      TX_M_MODBUS_RTU(1, DaA);
+              #endif
+ 172   3                              //---
+ 173   3                              Not_Conn++;
+ 174   3                              //---
+ 175   3                              if(Not_Conn >= 10){
+ 176   4                                      Not_Conn = 0;
+ 177   4                              }
+ 178   3                      }
+C51 COMPILER V9.59.0.0   TEMP_SENSOR                                                       09/25/2019 06:10:10 PAGE 4   
+
+ 179   2                      //---
+ 180   2                      WDTCR |= CLW;
+ 181   2          }
+ 182   1      }
+*** WARNING C280 IN LINE 69 OF ..\Source\Temp_Sensor.c: 'DW': unreferenced local variable
+ 183          //--------------------------------------------------------------------------
+ 184          // End of File
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    848    ----
+   CONSTANT SIZE    =    500    ----
+   XDATA SIZE       =     20       8
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =      1       6
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

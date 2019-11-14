@@ -1,0 +1,1 @@
+"..\Libraries\ADC.c" LARGE OMF2 OPTIMIZE (8,SPEED) BROWSE INCDIR(..\Source;..\Libraries) DEFINE (MB_MT="0",Uart1="1",Uart2="0") DEBUG PRINT(..\_List\ADC.lst) OBJECT(.\_Obj\ADC.obj)

@@ -1,0 +1,1 @@
+"..\Libraries\IAP.C" LARGE OMF2 OPTIMIZE (8,SPEED) BROWSE INCDIR(..\Source;..\Libraries) DEFINE (MB_MT="0",Uart1="1",Uart2="0") DEBUG PRINT(..\_List\IAP.lst) OBJECT(.\_Obj\IAP.obj)
